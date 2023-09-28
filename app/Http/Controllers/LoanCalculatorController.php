@@ -19,8 +19,9 @@ class LoanCalculatorController extends Controller
 
     public function calculate(CalculatorRequest $request): View
     {
-        $amortizationSchedule = $this->myService->schedule($request->all());
-
-        return view('calculator.result', compact('amortizationSchedule'));
+        return view('calculator.result', [
+            'schedules' => $this->myService->schedule($request->all()),
+            'request' => $request->all(),
+        ]);
     }
 }

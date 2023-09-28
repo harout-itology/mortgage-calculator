@@ -2,71 +2,74 @@
 
 namespace App\Services;
 
+use App\Helpers\CalculateHelper;
+use App\Models\ExtraRepaymentSchedule;
 use App\Models\Loan;
 use App\Models\LoanAmortizationSchedule;
 
 class LoanCalculatorService
 {
+    const MONTHS_IN_YEAR = 12;
+
     public function schedule(array $request): array
     {
-        $loanAmount = $request['loan_amount'];
-        $annualInterestRate = $request['annual_interest_rate'];
-        $loanTerm = $request['loan_term'];
-        $extraPayment = $request['extra_payment'] ?? 0;
-
-        // Store the loan in the database
         $loan = Loan::create();
 
-        // Convert annual interest rate to monthly
-        $monthlyInterestRate = $annualInterestRate / 12 / 100;
+        $loanAmount = $request['loan_amount'];
+        $extraPayment = $request['extra_payment'] ?? 0;
+        $monthlyInterestRate = $request['annual_interest_rate'] / self::MONTHS_IN_YEAR / 100;
+        $numMonths = $request['loan_term'] * self::MONTHS_IN_YEAR;
+        $monthlyPayment = $this->calculateMonthlyPayment($loanAmount, $monthlyInterestRate, $numMonths);
 
-        // Calculate total number of months
-        $numMonths = $loanTerm * 12;
-
-        // Calculate monthly payment
-        $monthlyPayment = ($loanAmount * $monthlyInterestRate) / (1 - pow((1 + $monthlyInterestRate), -$numMonths));
-
-        // Calculate the current balance
-        $remainingBalance = $loanAmount;
-
-        // Initialize variables for amortization schedule
-        $amortizationSchedule = [];
-
-        for ($month = 1; $month <= $numMonths; $month++)
-        {
-            // Calculate interest component for this month
-            $interestPayment = $remainingBalance * $monthlyInterestRate;
-
-            // Calculate principal component for this month
-            $principalPayment = $monthlyPayment - $interestPayment;
-
-            // Calculate the balance for the next month
-            $endingBalance = $remainingBalance - $principalPayment;
-
-            // Ensure ending balance doesn't go negative in the regular schedule
-            if ($endingBalance < 0) {
-                $principalPayment += $endingBalance;
-                $endingBalance = 0;
-            }
-
-            // Add data to the amortization schedule
-            $amortizationSchedule[] = [
-                'loan_id' => $loan->id,
-                'month_number' => $month,
-                'starting_balance' => $remainingBalance,
-                'monthly_payment' => $monthlyPayment,
-                'principal_component' => $principalPayment,
-                'interest_component' => $interestPayment,
-                'ending_balance' => $endingBalance
-            ];
-
-            // Update remaining balance
-            $remainingBalance = $endingBalance;
-        }
-
-        // Store the amortization schedule in the database
+        $amortizationSchedule = $this->amortizationSchedule($loan->id, $numMonths, $loanAmount, $monthlyInterestRate, $monthlyPayment);
         LoanAmortizationSchedule::insert($amortizationSchedule);
 
-        return $amortizationSchedule;
+        $extraRepaymentSchedule = [];
+        if ($extraPayment > 0) {
+            $extraRepaymentSchedule = $this->amortizationSchedule($loan->id, $numMonths, $loanAmount, $monthlyInterestRate, $monthlyPayment, $extraPayment);
+            ExtraRepaymentSchedule::insert($extraRepaymentSchedule);
+        }
+
+        return ['regular' => $amortizationSchedule, 'extra' => $extraRepaymentSchedule];
+    }
+
+    protected function calculateMonthlyPayment($loanAmount, $monthlyInterestRate, $numMonths): float
+    {
+        return ($loanAmount * $monthlyInterestRate) / (1 - pow((1 + $monthlyInterestRate), -$numMonths));
+    }
+
+    protected function amortizationSchedule($loanId, $numMonths, $initialBalance, $monthlyInterestRate, $monthlyPayment, $extraPayment = 0): array
+    {
+        $schedule = [];
+        $remainingBalance = $initialBalance;  // for interest calculations
+        $effectiveBalance = $initialBalance;  // for payment calculations
+
+        for ($month = 1; $month <= $numMonths && $effectiveBalance > 0; $month++)
+        {
+            $interestPayment = $remainingBalance * $monthlyInterestRate;
+            $principalPayment = min($monthlyPayment - $interestPayment, $effectiveBalance);
+            $actualExtraPayment = min($extraPayment, $effectiveBalance - $principalPayment);
+
+            $endingBalance = $effectiveBalance - $principalPayment - $actualExtraPayment;
+
+            $records = [
+                'loan_id' => $loanId,
+                'month_number' => $month,
+                'starting_balance' => CalculateHelper::format($effectiveBalance),
+                'monthly_payment' => CalculateHelper::format($monthlyPayment),
+                'principal_component' => CalculateHelper::format($principalPayment),
+                'interest_component' => CalculateHelper::format($interestPayment),
+                'ending_balance' => CalculateHelper::format($endingBalance)
+            ];
+            if ($extraPayment) { // show extra payment only if needed
+                $records['extra_payment'] = CalculateHelper::format($actualExtraPayment);
+            }
+            $schedule[] = $records;
+
+            $effectiveBalance = $endingBalance;
+            $remainingBalance -= $principalPayment;  // only principal, as the interest for the next month is based on this.
+        }
+
+        return $schedule;
     }
 }
