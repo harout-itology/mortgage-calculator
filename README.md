@@ -50,7 +50,7 @@ A web application built with Laravel 9 that allows users to calculate mortgage l
 
 The application should now be accessible at `http://localhost:8000`. but if the address already in use, the server will run on `http://localhost:8001`.
 
-## Usage
+## Web Usage
 
 1. Visit `http://localhost:8000`.
 2. Provide the loan details: amount, interest rate, term, and any extra monthly payment.
@@ -60,13 +60,56 @@ The application should now be accessible at `http://localhost:8000`. but if the 
 
 > **Input:**
 > - Loan amount: 1000
-> - Interest rate: 10%
+> - Interest rate: 10
 > - Term: 1 year
 > - Extra monthly payment: 25
 
 > **Output:**
 > - [Amortization Schedule Table]
 > - [Recalculated Schedule Table with Extra Repayments]
+
+## API Usage
+
+1. Request URL `http://localhost:8000/api/calculate`.
+2. Request method `POST`
+2. Provide the loan details: amount, interest rate, term, and any extra monthly payment.
+3. View the generated amortization schedule and, if applicable, the recalculated schedule with extra repayments.
+
+## Sample Input/Output
+
+> **Input:**
+curl --location --request POST 'http://localhost:8000/api/calculate' \
+--header 'Accept: application/json' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+"loan_amount": 1000,
+"annual_interest_rate": 10,
+"loan_term": 1
+}'
+
+> **Output:**
+{
+"schedules": {
+"regular": [
+{
+"loan_id": 59,
+"month_number": 1,
+"starting_balance": 1000,
+"monthly_payment": 87.92,
+"principal_component": 79.58,
+"interest_component": 8.33,
+"ending_balance": 920.42
+},
+...
+],
+"extra": []
+},
+"request": {
+"loan_amount": 1000,
+"annual_interest_rate": 10,
+"loan_term": 1
+}
+}
 
 ## Testing
 
