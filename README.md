@@ -3,12 +3,21 @@
 A web application built with Laravel 9 that allows users to calculate mortgage loans with an option for extra repayments. It displays an amortization schedule and also provides a recalculated schedule for loans shortened due to extra repayments.
 
 ## Table of Contents
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Usage](#usage)
-- [Sample Input/Output](#sample-inputoutput)
+- [Web Usage](#web-usage)
+- [Web Sample Input/Output](#web-sample-inputoutput)
+- [API Usage](#api-usage)
+- [API Sample Input/Output](#api-sample-inputoutput)
 - [Testing](#testing)
-- [Contribution](#contribution)
+
+## Requirements
+
+1. **PHP >= 8.0**
+2. **Composer**
+3. **A Google Cloud account with the Sheets API enabled**
+4. **A service account key from Google Cloud**
 
 ## Installation
 
@@ -16,6 +25,7 @@ A web application built with Laravel 9 that allows users to calculate mortgage l
     ```bash
     git clone https://github.com/harout-itology/mortgage-calculator.git
     cd mortgage-calculator
+    git checout develop 
     ```
 
 2. **Install Dependencies**
@@ -56,7 +66,7 @@ The application should now be accessible at `http://localhost:8000`. but if the 
 2. Provide the loan details: amount, interest rate, term, and any extra monthly payment.
 3. View the generated amortization schedule and, if applicable, the recalculated schedule with extra repayments.
 
-## Sample Input/Output
+## Web Sample Input/Output
 
 > **Input:**
 > - Loan amount: 1000
@@ -75,7 +85,7 @@ The application should now be accessible at `http://localhost:8000`. but if the 
 2. Provide the loan details: amount, interest rate, term, and any extra monthly payment.
 3. View the generated amortization schedule and, if applicable, the recalculated schedule with extra repayments.
 
-## Sample Input/Output
+## API Sample Input/Output
 
 > **Input:**
 curl --location --request POST 'http://localhost:8000/api/calculate' \
