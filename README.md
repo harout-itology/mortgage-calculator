@@ -25,7 +25,6 @@ A web application built with Laravel 9 that allows users to calculate mortgage l
     ```bash
     git clone https://github.com/harout-itology/mortgage-calculator.git
     cd mortgage-calculator
-    git checout develop 
     ```
 
 2. **Install Dependencies**
